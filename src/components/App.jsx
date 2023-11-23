@@ -20,7 +20,6 @@ export const App = () => {
         try {
           setLoader(true);
           const newQuerry = query.split('/');
-          console.log(newQuerry);
           const imageList = await fetchQuerry(newQuerry[1], page);
           setImages(prevImages => [...prevImages, ...imageList.hits]);
           setTotalImage(imageList.totalHits);

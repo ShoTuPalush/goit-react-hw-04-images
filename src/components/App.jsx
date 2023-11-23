@@ -1,5 +1,5 @@
 import { GlobalStyle } from './GlobalStyle';
-import { Component } from 'react';
+import { useState, useEffect } from 'react';
 import { SerchBar } from './SearchBar/SearchBar';
 import { fetchQuerry } from 'api';
 import { GalleryList } from './GalleryList/GalleryList';
@@ -7,70 +7,56 @@ import { LoadMore } from './LoadMore/LoadMore';
 import { Loader } from './Loader/Loader';
 import toast, { Toaster } from 'react-hot-toast';
 
-export class App extends Component {
-  state = {
-    loader: false,
-    images: [],
-    query: '',
-    page: 1,
-    totalImage: 0,
-  };
+export const App = () => {
+  const [loader, setLoader] = useState(false);
+  const [images, setImages] = useState([]);
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalImage, setTotalImage] = useState(0);
 
-  async componentDidUpdate(prevProp, prevState) {
-    if (
-      prevState.query !== this.state.query ||
-      prevState.page !== this.state.page
-    ) {
-      try {
-        this.setState({ loader: true });
-        const newQuerry = this.state.query.split('/');
-        const imageList = await fetchQuerry(newQuerry[1], this.state.page);
-        this.setState(prevStates => {
-          return {
-            images: [...prevStates.images, ...imageList.hits],
-            totalImage: imageList.totalHits,
-          };
-        });
-      } catch (error) {
-        toast.error('Error! Try again');
-      } finally {
-        this.setState({ loader: false });
+  useEffect(() => {
+    if (query !== '') {
+      async function fetchImage() {
+        try {
+          setLoader(true);
+          const newQuerry = query.split('/');
+          console.log(newQuerry);
+          const imageList = await fetchQuerry(newQuerry[1], page);
+          setImages(prevImages => [...prevImages, ...imageList.hits]);
+          setTotalImage(imageList.totalHits);
+        } catch (error) {
+          toast.error('Error! Try again');
+        } finally {
+          setLoader(false);
+        }
       }
+      fetchImage();
     }
-  }
+  }, [query, page]);
 
-  onSubmit = evt => {
+  const onSubmit = evt => {
     evt.preventDefault();
     const newQuery = evt.target.elements.querry.value.trim();
     if (!newQuery) {
       return toast.error('Can not be empty');
     }
-    this.setState({
-      query: `${Date.now()}/${newQuery}`,
-      images: [],
-      page: 1,
-    });
+    setQuery(`${Date.now()}/${newQuery}`);
+    setImages([]);
+    setPage(1);
   };
 
-  loadMore = () => {
-    this.setState(prevState => {
-      return { page: prevState.page + 1 };
-    });
+  const loadMore = () => {
+    setPage(prevPage => prevPage + 1);
   };
 
-  render() {
-    const { images, page, totalImage, loader } = this.state;
-    return (
-      <div>
-        <GlobalStyle />
-        <SerchBar onSubmit={this.onSubmit} />
-        {images.length > 0 && <GalleryList imagesList={images} />}
-        {12 * page < totalImage && !loader && (
-          <LoadMore loadMore={this.loadMore} />
-        )}
-        {loader && <Loader />}
-        <Toaster />
-      </div>
-    );
-  }
-}
+  return (
+    <div>
+      <GlobalStyle />
+      <SerchBar onSubmit={onSubmit} />
+      {images.length > 0 && <GalleryList imagesList={images} />}
+      {12 * page < totalImage && !loader && <LoadMore loadMore={loadMore} />}
+      {loader && <Loader />}
+      <Toaster />
+    </div>
+  );
+};
